@@ -87,6 +87,7 @@ ArenaCameraNode::ArenaCameraNode()
   , sampling_indices_()
   , brightness_exp_lut_()
   , is_sleeping_(false)
+  , is_helios2(false)
 {
   diagnostics_updater_.setHardwareID("none");
   diagnostics_updater_.add("camera_availability", this, &ArenaCameraNode::create_diagnostics);
@@ -230,6 +231,19 @@ bool ArenaCameraNode::initAndRegister()
   {
     ROS_INFO_STREAM("Camera " << arena_camera_parameter_set_.deviceUserID() << " is found!");
   }
+  
+  ROS_INFO_STREAM("Checking if Helios 2 is connected");
+  
+  GenICam::gcstring deviceModelName = Arena::GetNodeValue<GenICam::gcstring>(pDevice_->GetNodeMap(), "DeviceModelName");
+  std::string deviceModelName_tmp = deviceModelName.c_str();
+  if (deviceModelName_tmp.rfind("HLT", 0) == 0)
+  {
+	  is_helios2 = true;
+  }
+  if(is_helios2)
+	  ROS_INFO_STREAM("Helios 2 is connected");
+  else
+	  ROS_INFO_STREAM("Helios 2 is NOT connected");
 
   if (!ros::ok())
   {
@@ -453,30 +467,33 @@ bool ArenaCameraNode::startGrabbing()
 
     // exposure_auto_ will be already set to false if exposure_given_ is true
     // read params () solved the priority between them
-    if (arena_camera_parameter_set_.exposure_auto_)
-    {
-      Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureAuto", "Continuous");
-      // todo update parameter on the server
-      ROS_INFO_STREAM("Settings Exposure to auto/Continuous");
-    }
-    else
-    {
-      Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureAuto", "Off");
-      // todo update parameter on the server
-      ROS_INFO_STREAM("Settings Exposure to off/false");
-    }
-
-    if (arena_camera_parameter_set_.exposure_given_)
-     {
-      float reached_exposure;
-      if (setExposure(arena_camera_parameter_set_.exposure_, reached_exposure))
-      {
-        // Note: ont update the ros param because it might keep 
-        // decreasing or incresing overtime when rerun
-        ROS_INFO_STREAM("Setting exposure to " << arena_camera_parameter_set_.exposure_
-                                               << ", reached: " << reached_exposure);
-      }
-    }
+    if(!is_helios2)
+	{
+		if (arena_camera_parameter_set_.exposure_auto_)
+		{
+			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureAuto", "Continuous");
+			// todo update parameter on the server
+			ROS_WARN_STREAM("Settings Exposure to auto/Continuous");
+		}
+		else
+		{
+			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureAuto", "Off");
+			// todo update parameter on the server
+			ROS_WARN_STREAM("Settings Exposure to off/false");
+		}
+		
+		if (arena_camera_parameter_set_.exposure_given_)
+		{
+			float reached_exposure;
+			if (setExposure(arena_camera_parameter_set_.exposure_, reached_exposure))
+			{
+				// Note: ont update the ros param because it might keep 
+				// decreasing or incresing overtime when rerun
+				ROS_INFO_STREAM("Setting exposure to " << arena_camera_parameter_set_.exposure_
+				<< ", reached: " << reached_exposure);
+			}
+		}
+	}
 
     //
     // GAIN
@@ -1353,6 +1370,11 @@ bool ArenaCameraNode::setROICallback(camera_control_msgs::SetROI::Request& req,
 
 bool ArenaCameraNode::setExposureValue(const float& target_exposure, float& reached_exposure)
 {
+  if(is_helios2)
+  {
+	ROS_INFO_STREAM("Helios 2 is connected, can not set exposure value");
+	return true;
+  }
   try
   {
     Arena::SetNodeValue<GenICam::gcstring>(pDevice_->GetNodeMap(), "ExposureAuto", "Off");
@@ -1394,6 +1416,11 @@ bool ArenaCameraNode::setExposureValue(const float& target_exposure, float& reac
 
 bool ArenaCameraNode::setExposure(const float& target_exposure, float& reached_exposure)
 {
+	if(is_helios2)
+	{
+		ROS_INFO_STREAM("Helios 2 is connected, can not set exposure value");
+		return true;
+	}
   boost::lock_guard<boost::recursive_mutex> lock(grab_mutex_);
   // if ( !pylon_camera_->isReady() )
   // {

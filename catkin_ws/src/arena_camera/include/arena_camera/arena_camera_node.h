@@ -393,6 +393,8 @@ protected:
   ros::Timer diagnostics_trigger_;
   void create_diagnostics(diagnostic_updater::DiagnosticStatusWrapper& stat);
   void create_camera_info_diagnostics(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  
+  bool is_helios2;
 };
 
 }  // namespace arena_camera
