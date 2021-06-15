@@ -418,6 +418,7 @@ bool ArenaCameraNode::startGrabbing()
     // TRIGGER MODE
     //
     GenApi::CStringPtr pTriggerMode = pNodeMap->GetNode("TriggerMode");
+	ROS_INFO_STREAM("Setting Trigger Mode");
     if (GenApi::IsWritable(pTriggerMode))
     {
       Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "TriggerMode", "On");
@@ -427,6 +428,7 @@ bool ArenaCameraNode::startGrabbing()
     //
     // FRAMERATE
     //
+    ROS_INFO_STREAM("Setting Frame Rate");
     auto cmdlnParamFrameRate = arena_camera_parameter_set_.frameRate();
     auto currentFrameRate = Arena::GetNodeValue<double>(pNodeMap , "AcquisitionFrameRate");
     auto maximumFrameRate = GenApi::CFloatPtr(pNodeMap->GetNode("AcquisitionFrameRate"))->GetMax();
@@ -469,6 +471,7 @@ bool ArenaCameraNode::startGrabbing()
     // read params () solved the priority between them
     if(!is_helios2)
 	{
+		ROS_INFO_STREAM("Setting Exposure");
 		if (arena_camera_parameter_set_.exposure_auto_)
 		{
 			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureAuto", "Continuous");
@@ -494,6 +497,10 @@ bool ArenaCameraNode::startGrabbing()
 			}
 		}
 	}
+	else
+	{
+		ROS_INFO_STREAM("Disabling Exposure feature");
+	}
 
     //
     // GAIN
@@ -501,6 +508,7 @@ bool ArenaCameraNode::startGrabbing()
     
     // gain_auto_ will be already set to false if gain_given_ is true
     // read params () solved the priority between them
+    ROS_INFO_STREAM("Setting Gain");
     if (arena_camera_parameter_set_.gain_auto_)
     {
       Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "GainAuto", "Continuous");
@@ -528,6 +536,7 @@ bool ArenaCameraNode::startGrabbing()
     //
     // GAMMA
     //
+    ROS_INFO_STREAM("Setting Gamma");
     if (arena_camera_parameter_set_.gamma_given_)
     {
       float reached_gamma;
@@ -544,6 +553,7 @@ bool ArenaCameraNode::startGrabbing()
     CameraInfo initial_cam_info;
     setupInitialCameraInfo(initial_cam_info);
     camera_info_manager_->setCameraInfo(initial_cam_info);
+	ROS_INFO_STREAM("Setting Camera info URL");
 
     if (arena_camera_parameter_set_.cameraInfoURL().empty() ||
         !camera_info_manager_->validateURL(arena_camera_parameter_set_.cameraInfoURL()))
@@ -573,6 +583,7 @@ bool ArenaCameraNode::startGrabbing()
       }
     }
 
+    ROS_INFO_STREAM("Setting binning X");
     if (arena_camera_parameter_set_.binning_x_given_)
     {
       size_t reached_binning_x;
@@ -583,7 +594,7 @@ bool ArenaCameraNode::startGrabbing()
                         << "be adapted, so that the binning_x value in this msg remains 1");
       }
     }
-
+    ROS_INFO_STREAM("Setting binning Y");
     if (arena_camera_parameter_set_.binning_y_given_)
     {
       size_t reached_binning_y;
@@ -611,6 +622,7 @@ bool ArenaCameraNode::startGrabbing()
     // Trigger Image
     //
 
+	ROS_INFO_STREAM("Start stream");
     pDevice_->StartStream();
     bool isTriggerArmed = false;
 
