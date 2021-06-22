@@ -64,6 +64,10 @@ bool ros2GenAPI(const std::string& ros_enc, std::string& gen_api_enc)
   {
     gen_api_enc = "Coord3D_ABCY16";
   }
+  else if (ros_enc == "coord3d_c16") // ADDED ONLY HERE, missing from sensor_msgs image encodings file
+  {
+	gen_api_enc = "Coord3D_C16";    //DEPTH VALUE
+  }
   else if (ros_enc == sensor_msgs::image_encodings::BGR8)
   {
     gen_api_enc = "BGR8";
@@ -137,7 +141,11 @@ bool genAPI2Ros(const std::string& gen_api_enc, std::string& ros_enc)
   }
   else if (gen_api_enc == "Coord3D_ABCY16")
   {
-    ros_enc = sensor_msgs::image_encodings::TYPE_16UC4;
+	  ros_enc = sensor_msgs::image_encodings::TYPE_16UC4;
+  }
+  else if (gen_api_enc == "Coord3D_C16") // ADDED
+  {
+	  ros_enc = sensor_msgs::image_encodings::TYPE_16UC1;
   }
   else if (gen_api_enc == "BGR8")
   {

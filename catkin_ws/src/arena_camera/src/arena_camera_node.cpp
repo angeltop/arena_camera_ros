@@ -414,6 +414,10 @@ bool ArenaCameraNode::startGrabbing()
     //
     setImageEncoding(arena_camera_parameter_set_.imageEncoding());
 
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_c16")
+    {
+		ROS_INFO_STREAM("Publishing depth data in mono16 format");
+	}
     //
     // TRIGGER MODE
     //
@@ -735,6 +739,12 @@ bool ArenaCameraNode::startGrabbing()
 			cloud->width = img_raw_msg_.width;
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
 			pc_pub_.publish(cloud);
+			// just publish depth information
+			cv_bridge::CvImage finalImage;
+			finalImage.header = img_raw_msg_.header;
+			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+			finalImage.image = z;
+			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{
@@ -771,6 +781,11 @@ bool ArenaCameraNode::startGrabbing()
 			cloud->width = img_raw_msg_.width;
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
 			pc_pub_.publish(cloud);
+			cv_bridge::CvImage finalImage;
+			finalImage.header = img_raw_msg_.header;
+			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+			finalImage.image = z;
+			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{
@@ -917,7 +932,13 @@ void ArenaCameraNode::spin()
       cam_info->header.stamp = img_raw_msg_.header.stamp;
 
       // Publish via image_transport
-      img_raw_pub_.publish(img_raw_msg_, *cam_info);
+	  if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16" ||
+		  arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+	  {
+		img_raw_pub_.publish(final_img_msg_, *cam_info);
+	  }
+	  else
+		img_raw_pub_.publish(img_raw_msg_, *cam_info);
       ROS_INFO_ONCE("Number subscribers received");
     }
 
@@ -960,6 +981,7 @@ bool ArenaCameraNode::grabImage()
 
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
 	{
+		ros::Time start = ros::Time::now();
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
@@ -980,10 +1002,18 @@ bool ArenaCameraNode::grabImage()
 					pcl::PointXYZ point(x.at<double>(i,j), y.at<double>(i,j), z.at<double>(i,j));
 					cloud->points.push_back(point);	
 				}
-				cloud->height = img_raw_msg_.height;
+			cloud->height = img_raw_msg_.height;
 			cloud->width = img_raw_msg_.width;
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
+
 			pc_pub_.publish(cloud);
+			ros::Duration dur = ros::Time::now()-start;
+			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
+			cv_bridge::CvImage finalImage;
+			finalImage.header = img_raw_msg_.header;
+			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+			finalImage.image = z;
+			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{
@@ -993,6 +1023,7 @@ bool ArenaCameraNode::grabImage()
 	}
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
 	{
+		ros::Time start = ros::Time::now();
 		pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
@@ -1016,10 +1047,17 @@ bool ArenaCameraNode::grabImage()
 					point.z = z.at<float>(i,j);
 					cloud->points.push_back(point);	
 				}
-				cloud->height = img_raw_msg_.height;
+			cloud->height = img_raw_msg_.height;
 			cloud->width = img_raw_msg_.width;
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
 			pc_pub_.publish(cloud);
+			ros::Duration dur = ros::Time::now()-start;
+			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
+			cv_bridge::CvImage finalImage;
+			finalImage.header = img_raw_msg_.header;
+			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+			finalImage.image = z;
+			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{
