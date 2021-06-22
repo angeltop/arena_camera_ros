@@ -287,7 +287,7 @@ public:
   bool auto_flash_line_3_;
 
   /* ADDITIONAL PARAMETERS */
-  int amplitude_gain_;
+  double amplitude_gain_;
   std::string exposure_time_selector_;
   std::string conversion_gain_;
   std::string operating_mode_;

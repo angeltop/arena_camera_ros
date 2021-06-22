@@ -34,7 +34,7 @@ camera_info_url: ""
 #  The desired publisher frame rate if listening to the topics.
 #  This parameter can only be set once at startup
 #  Calling the GrabImages-Action can result in a higher framerate
-frame_rate: 5.0
+frame_rate: 30
 
 #  Mode of camera's shutter.
 #  The supported modes are "rolling", "global" and "global_reset"
@@ -124,12 +124,12 @@ gain_auto: false
 ############################################################################
 ## ADDITIONAL PARAMETERS FOR HELIOS 2 SETUP
 
-scan3d_amplitude_gain: 128
-exposure_time_selector: Exp1000Us  #Exp1000Us, Exp250Us, Exp62_5Us
-conversion_gain: High # Low
+amplitude_gain: 4
+exposure_time_selector: Exp62_5Us  #Exp1000Us, Exp250Us, Exp62_5Us
+conversion_gain: Low #High # Low
 
 # Default value Distance5000mmMultiFreq
-operating_mode: Distance3000mmSingleFreq #Distance1250mmSingleFreq, Distance3000mmSingleFreq, Distance4000mmSingleFreq
+operating_mode: Distance1250mmSingleFreq #Distance1250mmSingleFreq, Distance3000mmSingleFreq, Distance4000mmSingleFreq
 #                 Distance5000mmMultiFreq, Distance6000mmSingleFreq, Distance8300mmMultiFreq
 
 # spatial_filter: False #True. False
@@ -137,7 +137,7 @@ operating_mode: Distance3000mmSingleFreq #Distance1250mmSingleFreq, Distance3000
 # image encoding
 
 #image_encoding: mono8 #mono8
-#image_encoding: mono16 #mono16
+image_encoding: mono16 #mono16
 #image_encoding: coord3d_abc16 #16UC3 xyz
 #image_encoding: coord3d_abcy16 #16UC4 xyz with I
 #image_encoding: confidence16

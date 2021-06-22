@@ -545,7 +545,7 @@ bool ArenaCameraNode::startGrabbing()
 			(arena_camera_parameter_set_.imageEncoding()==sensor_msgs::image_encodings::MONO8 || arena_camera_parameter_set_.imageEncoding()==sensor_msgs::image_encodings::MONO16 ))
 		{
 			ROS_INFO_STREAM("Setting amplitude gain to "<<arena_camera_parameter_set_.amplitude_gain_);
-			Arena::SetNodeValue<int64_t>(pNodeMap, "Scan3dAmplitudeGain", arena_camera_parameter_set_.amplitude_gain_);
+			Arena::SetNodeValue<double>(pNodeMap, "Scan3dAmplitudeGain", arena_camera_parameter_set_.amplitude_gain_);
 		}
 		if(arena_camera_parameter_set_.conversion_gain_given_)
 		{
@@ -585,6 +585,17 @@ bool ArenaCameraNode::startGrabbing()
 		offset_y_ = static_cast<float>(Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateOffset"));
 		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "Scan3dCoordinateSelector", "CoordinateC");
 		scale_z_ = Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateScale");
+		
+		ROS_INFO_STREAM("Camera Parameters:\nScale X: "<<scale_x_<<" offset X: "<<offset_x_<<"\nScale Y: "<<scale_y_<<" offset Y: "<<offset_y_<<"\nScale Z: "<<scale_z_);
+		
+		scale_x_ = 0.001*scale_x_;
+		scale_y_ = 0.001*scale_y_;
+		scale_z_ = 0.001*scale_z_;
+		offset_x_ = 0.001*offset_x_;
+		offset_y_ = 0.001*offset_y_;
+		
+		
+		ROS_INFO_STREAM("Camera Parameters in meters:\nScale X: "<<scale_x_<<" offset X: "<<offset_x_<<"\nScale Y: "<<scale_y_<<" offset Y: "<<offset_y_<<"\nScale Z: "<<scale_z_);
 		
 		if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
 			pc_pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZI> >("points", 0);
@@ -710,9 +721,9 @@ bool ArenaCameraNode::startGrabbing()
 			cv::Mat channels[3];
 			cv::split(im, channels);
 			cv::Mat x, y, z;
-			channels[0].convertTo(x, CV_64F, (0.001*scale_x_),offset_x_);
-			channels[1].convertTo(y, CV_64F, (0.001*scale_y_),offset_y_);
-			channels[2].convertTo(z, CV_64F, (0.001*scale_z_),0);
+			channels[0].convertTo(x, CV_64F, scale_x_, offset_x_);
+			channels[1].convertTo(y, CV_64F, scale_y_, offset_y_);
+			channels[2].convertTo(z, CV_64F, scale_z_, 0);
 			
 			for(int i=0; i<x.rows; i++)
 				for(int j=0; j<x.cols; j++)
@@ -738,14 +749,14 @@ bool ArenaCameraNode::startGrabbing()
 		cv_bridge::CvImagePtr cv_ptr;
 		try
 		{
-			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC4);
 			im = cv_ptr->image;
 			cv::Mat channels[4];
 			cv::split(im, channels);
 			cv::Mat x, y, z, I;
-			channels[0].convertTo(x, CV_32F, (0.001*scale_x_),offset_x_);
-			channels[1].convertTo(y, CV_32F, (0.001*scale_y_),offset_y_);
-			channels[2].convertTo(z, CV_32F, (0.001*scale_z_),0);
+			channels[0].convertTo(x, CV_32F, scale_x_, offset_x_);
+			channels[1].convertTo(y, CV_32F, scale_y_, offset_y_);
+			channels[2].convertTo(z, CV_32F, scale_z_, 0);
 			channels[3].convertTo(I, CV_32F, 0, 0);
 			for(int i=0; i<x.rows; i++)
 				for(int j=0; j<x.cols; j++)
@@ -959,9 +970,9 @@ bool ArenaCameraNode::grabImage()
 			cv::Mat channels[3];
 			cv::split(im, channels);
 			cv::Mat x, y, z;
-			channels[0].convertTo(x, CV_64F, (0.001*scale_x_),offset_x_);
-			channels[1].convertTo(y, CV_64F, (0.001*scale_y_),offset_y_);
-			channels[2].convertTo(z, CV_64F, (0.001*scale_z_),0);
+			channels[0].convertTo(x, CV_64F, scale_x_, offset_x_);
+			channels[1].convertTo(y, CV_64F, scale_y_, offset_y_);
+			channels[2].convertTo(z, CV_64F, scale_z_ , 0);
 			
 			for(int i=0; i<x.rows; i++)
 				for(int j=0; j<x.cols; j++)
@@ -987,14 +998,14 @@ bool ArenaCameraNode::grabImage()
 		cv_bridge::CvImagePtr cv_ptr;
 		try
 		{
-			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC4);
 			im = cv_ptr->image;
 			cv::Mat channels[4];
 			cv::split(im, channels);
 			cv::Mat x, y, z, I;
-			channels[0].convertTo(x, CV_32F, (0.001*scale_x_),offset_x_);
-			channels[1].convertTo(y, CV_32F, (0.001*scale_y_),offset_y_);
-			channels[2].convertTo(z, CV_32F, (0.001*scale_z_),0);
+			channels[0].convertTo(x, CV_32F, scale_x_, offset_x_);
+			channels[1].convertTo(y, CV_32F, scale_y_, offset_y_);
+			channels[2].convertTo(z, CV_32F, scale_z_, 0);
 			channels[3].convertTo(I, CV_32F, 0, 0);
 			for(int i=0; i<x.rows; i++)
 				for(int j=0; j<x.cols; j++)
