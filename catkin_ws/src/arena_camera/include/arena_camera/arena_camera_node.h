@@ -64,6 +64,7 @@
 #include <ArenaApi.h>
 #include <arena_camera/arena_camera.h>
 #include <arena_camera/arena_camera_parameter.h>
+#include "pcl_ros/point_cloud.h"
 
 namespace arena_camera
 {
@@ -395,6 +396,11 @@ protected:
   void create_camera_info_diagnostics(diagnostic_updater::DiagnosticStatusWrapper& stat);
   
   bool is_helios2;
+  
+  // Pointcloud publisher
+  ros::Publisher pc_pub_;
+  double scale_x_, scale_y_, scale_z_;
+  double offset_x_, offset_y_;
 };
 
 }  // namespace arena_camera

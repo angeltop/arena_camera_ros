@@ -469,7 +469,7 @@ bool ArenaCameraNode::startGrabbing()
 
     // exposure_auto_ will be already set to false if exposure_given_ is true
     // read params () solved the priority between them
-    if(!is_helios2)
+    if(!is_helios2) // Helios2 does not offer auto exposure or auto gain
 	{
 		ROS_INFO_STREAM("Setting Exposure");
 		if (arena_camera_parameter_set_.exposure_auto_)
@@ -496,43 +496,101 @@ bool ArenaCameraNode::startGrabbing()
 				<< ", reached: " << reached_exposure);
 			}
 		}
+
+		//
+		// GAIN
+		//
+		
+		// gain_auto_ will be already set to false if gain_given_ is true
+		// read params () solved the priority between them
+		ROS_INFO_STREAM("Setting Gain");
+		if (arena_camera_parameter_set_.gain_auto_)
+		{
+		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "GainAuto", "Continuous");
+		// todo update parameter on the server
+		ROS_INFO_STREAM("Settings Gain to auto/Continuous");
+		}
+		else
+		{
+		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "GainAuto", "Off");
+		// todo update parameter on the server
+		ROS_INFO_STREAM("Settings Gain to off/false");
+		}
+
+		if (arena_camera_parameter_set_.gain_given_)
+		{
+		float reached_gain;
+		if (setGain(arena_camera_parameter_set_.gain_, reached_gain))
+		{
+			// Note: ont update the ros param because it might keep 
+			// decreasing or incresing overtime when rerun
+			ROS_INFO_STREAM("Setting gain to: " << arena_camera_parameter_set_.gain_ << ", reached: " << reached_gain);
+		}
+		}
 	}
 	else
 	{
-		ROS_INFO_STREAM("Disabling Exposure feature");
+		ROS_INFO_STREAM("Helios 2 is connected. Disabling Auto Exposure and Auto Gain wrapper's functionalities.");
+		ROS_INFO_STREAM("Please use exposure time selector with acceptable values  Exp1000Us, Exp250Us or Exp62_5Us");
+		ROS_INFO_STREAM("Please use scan3d amplitude gain with acceptable values 0-128. THIS CAN BE USED ONLY IN MONO IMAGES");
+		ROS_INFO_STREAM("Please use conversion gain with acceptable values Low or High");
+		ROS_INFO_STREAM("Please use Operating mode with acceptable values Distance1250mmSingleFreq, Distance3000mmSingleFreq, Distance4000mmSingleFreq, Distance5000mmMultiFreq, Distance6000mmSingleFreq, Distance8300mmMultiFreq");
+		
+		if(arena_camera_parameter_set_.exposure_time_selector_given_)
+		{
+			ROS_INFO_STREAM("Setting exposure time selector to "<<arena_camera_parameter_set_.exposure_time_selector_);
+			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ExposureTimeSelector", GenICam::gcstring(arena_camera_parameter_set_.exposure_time_selector_.c_str()));
+		}
+		if(arena_camera_parameter_set_.amplitude_gain_given_ && 
+			(arena_camera_parameter_set_.imageEncoding()==sensor_msgs::image_encodings::MONO8 || arena_camera_parameter_set_.imageEncoding()==sensor_msgs::image_encodings::MONO16 ))
+		{
+			ROS_INFO_STREAM("Setting amplitude gain to "<<arena_camera_parameter_set_.amplitude_gain_);
+			Arena::SetNodeValue<int64_t>(pNodeMap, "Scan3dAmplitudeGain", arena_camera_parameter_set_.amplitude_gain_);
+		}
+		if(arena_camera_parameter_set_.conversion_gain_given_)
+		{
+			ROS_INFO_STREAM("Setting conversion gain to "<<arena_camera_parameter_set_.conversion_gain_);
+			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "ConversionGain", GenICam::gcstring(arena_camera_parameter_set_.conversion_gain_.c_str()));
+		}
+		if(arena_camera_parameter_set_.operating_mode_given_)
+		{
+			ROS_INFO_STREAM("Setting operating mode to "<<arena_camera_parameter_set_.operating_mode_);
+			Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "Scan3dOperatingMode", GenICam::gcstring(arena_camera_parameter_set_.operating_mode_.c_str()));
+		}
 	}
-
-    //
-    // GAIN
-    //
-    
-    // gain_auto_ will be already set to false if gain_given_ is true
-    // read params () solved the priority between them
-    ROS_INFO_STREAM("Setting Gain");
-    if (arena_camera_parameter_set_.gain_auto_)
-    {
-      Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "GainAuto", "Continuous");
-      // todo update parameter on the server
-      ROS_INFO_STREAM("Settings Gain to auto/Continuous");
-    }
-    else
-    {
-      Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "GainAuto", "Off");
-      // todo update parameter on the server
-      ROS_INFO_STREAM("Settings Gain to off/false");
-    }
-
-    if (arena_camera_parameter_set_.gain_given_)
-    {
-      float reached_gain;
-      if (setGain(arena_camera_parameter_set_.gain_, reached_gain))
-      {
-        // Note: ont update the ros param because it might keep 
-        // decreasing or incresing overtime when rerun
-        ROS_INFO_STREAM("Setting gain to: " << arena_camera_parameter_set_.gain_ << ", reached: " << reached_gain);
-      }
-    }
-
+	
+	if(arena_camera_parameter_set_.spatial_filter_on_given_)
+	{
+		ROS_INFO_STREAM("Setting spatial filter to "<<arena_camera_parameter_set_.spatial_filter_on_);
+		Arena::SetNodeValue<bool>(pNodeMap, "Scan3dSpatialFilterEnable", arena_camera_parameter_set_.spatial_filter_on_);
+	}
+	
+	
+	// publish pointcloud when xyz is available
+	
+	
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16" || arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+	{
+		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "Scan3dCoordinateSelector", "CoordinateA");
+		// getting scaleX as float by casting since SetPly() will expect it passed as
+		// float
+		scale_x_ = static_cast<float>(Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateScale"));
+		// getting offsetX as float by casting since SetPly() will expect it passed
+		// as float
+		offset_x_ = static_cast<float>(Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateOffset"));
+		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "Scan3dCoordinateSelector", "CoordinateB");
+		scale_y_ = Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateScale");
+		// getting offsetY as float by casting since SetPly() will expect it passed
+		// as float
+		offset_y_ = static_cast<float>(Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateOffset"));
+		Arena::SetNodeValue<GenICam::gcstring>(pNodeMap, "Scan3dCoordinateSelector", "CoordinateC");
+		scale_z_ = Arena::GetNodeValue<double>(pNodeMap, "Scan3dCoordinateScale");
+		
+		if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+			pc_pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZI> >("points", 0);
+		else
+			pc_pub_ = nh_.advertise<pcl::PointCloud<pcl::PointXYZ> >("points", 0);
+	}
     //
     // GAMMA
     //
@@ -640,6 +698,75 @@ bool ArenaCameraNode::startGrabbing()
 
     img_raw_msg_.data.resize(img_raw_msg_.height * img_raw_msg_.step);
     memcpy(&img_raw_msg_.data[0], pImage_->GetData(), img_raw_msg_.height * img_raw_msg_.step);
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
+	{
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+		cv::Mat im;
+		cv_bridge::CvImagePtr cv_ptr;
+		try
+		{
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			im = cv_ptr->image;
+			cv::Mat channels[3];
+			cv::split(im, channels);
+			cv::Mat x, y, z;
+			channels[0].convertTo(x, CV_64F, (0.001*scale_x_),offset_x_);
+			channels[1].convertTo(y, CV_64F, (0.001*scale_y_),offset_y_);
+			channels[2].convertTo(z, CV_64F, (0.001*scale_z_),0);
+			
+			for(int i=0; i<x.rows; i++)
+				for(int j=0; j<x.cols; j++)
+				{
+					pcl::PointXYZ point(x.at<double>(i,j), y.at<double>(i,j), z.at<double>(i,j));
+					cloud->points.push_back(point);	
+				}
+			cloud->height = img_raw_msg_.height;
+			cloud->width = img_raw_msg_.width;
+			cloud->header.frame_id = img_raw_msg_.header.frame_id;
+			pc_pub_.publish(cloud);
+		}
+		catch (cv_bridge::Exception& e)
+		{
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+
+		}
+	}
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+	{
+		pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
+		cv::Mat im;
+		cv_bridge::CvImagePtr cv_ptr;
+		try
+		{
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			im = cv_ptr->image;
+			cv::Mat channels[4];
+			cv::split(im, channels);
+			cv::Mat x, y, z, I;
+			channels[0].convertTo(x, CV_32F, (0.001*scale_x_),offset_x_);
+			channels[1].convertTo(y, CV_32F, (0.001*scale_y_),offset_y_);
+			channels[2].convertTo(z, CV_32F, (0.001*scale_z_),0);
+			channels[3].convertTo(I, CV_32F, 0, 0);
+			for(int i=0; i<x.rows; i++)
+				for(int j=0; j<x.cols; j++)
+				{
+					pcl::PointXYZI point(I.at<float>(i,j));
+					point.x = x.at<float>(i,j);
+					point.y = y.at<float>(i,j);
+					point.z = z.at<float>(i,j);
+					cloud->points.push_back(point);	
+				}
+			cloud->height = img_raw_msg_.height;
+			cloud->width = img_raw_msg_.width;
+			cloud->header.frame_id = img_raw_msg_.header.frame_id;
+			pc_pub_.publish(cloud);
+		}
+		catch (cv_bridge::Exception& e)
+		{
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+
+		}
+	}
   }
   catch (GenICam::GenericException& e)
   {
@@ -820,6 +947,75 @@ bool ArenaCameraNode::grabImage()
 
     img_raw_msg_.header.stamp = ros::Time::now();
 
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
+	{
+		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+		cv::Mat im;
+		cv_bridge::CvImagePtr cv_ptr;
+		try
+		{
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			im = cv_ptr->image;
+			cv::Mat channels[3];
+			cv::split(im, channels);
+			cv::Mat x, y, z;
+			channels[0].convertTo(x, CV_64F, (0.001*scale_x_),offset_x_);
+			channels[1].convertTo(y, CV_64F, (0.001*scale_y_),offset_y_);
+			channels[2].convertTo(z, CV_64F, (0.001*scale_z_),0);
+			
+			for(int i=0; i<x.rows; i++)
+				for(int j=0; j<x.cols; j++)
+				{
+					pcl::PointXYZ point(x.at<double>(i,j), y.at<double>(i,j), z.at<double>(i,j));
+					cloud->points.push_back(point);	
+				}
+				cloud->height = img_raw_msg_.height;
+			cloud->width = img_raw_msg_.width;
+			cloud->header.frame_id = img_raw_msg_.header.frame_id;
+			pc_pub_.publish(cloud);
+		}
+		catch (cv_bridge::Exception& e)
+		{
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			
+		}
+	}
+	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+	{
+		pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
+		cv::Mat im;
+		cv_bridge::CvImagePtr cv_ptr;
+		try
+		{
+			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
+			im = cv_ptr->image;
+			cv::Mat channels[4];
+			cv::split(im, channels);
+			cv::Mat x, y, z, I;
+			channels[0].convertTo(x, CV_32F, (0.001*scale_x_),offset_x_);
+			channels[1].convertTo(y, CV_32F, (0.001*scale_y_),offset_y_);
+			channels[2].convertTo(z, CV_32F, (0.001*scale_z_),0);
+			channels[3].convertTo(I, CV_32F, 0, 0);
+			for(int i=0; i<x.rows; i++)
+				for(int j=0; j<x.cols; j++)
+				{
+					pcl::PointXYZI point(I.at<float>(i,j));
+					point.x = x.at<float>(i,j);
+					point.y = y.at<float>(i,j);
+					point.z = z.at<float>(i,j);
+					cloud->points.push_back(point);	
+				}
+				cloud->height = img_raw_msg_.height;
+			cloud->width = img_raw_msg_.width;
+			cloud->header.frame_id = img_raw_msg_.header.frame_id;
+			pc_pub_.publish(cloud);
+		}
+		catch (cv_bridge::Exception& e)
+		{
+			ROS_ERROR("cv_bridge exception: %s", e.what());
+			
+		}
+	}
     pDevice_->RequeueBuffer(pImage_);
     return true;
   }

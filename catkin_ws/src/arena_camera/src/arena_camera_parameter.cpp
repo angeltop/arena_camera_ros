@@ -73,6 +73,14 @@ ArenaCameraParameter::ArenaCameraParameter()
   , inter_pkg_delay_(1000)
   , shutter_mode_(SM_DEFAULT)
   , auto_flash_(false)
+  , amplitude_gain_(0)
+  , exposure_time_selector_("Exp62_5Us")
+  , conversion_gain_("High")
+  , operating_mode_("")
+  , amplitude_gain_given_(false)
+  , exposure_time_selector_given_(false)
+  , conversion_gain_given_(false)
+  , operating_mode_given_(false)
 {
 }
 
@@ -332,7 +340,20 @@ void ArenaCameraParameter::readFromRosParameterServer(const ros::NodeHandle& nh)
     ROS_WARN_STREAM("gain_auto is ignored because gain is given.");
   }
 
-  
+/* ADDING 3 PARAMETERS FOR HELIOS 2 */
+
+amplitude_gain_given_ = nh.hasParam("amplitude_gain");
+exposure_time_selector_given_ = nh.hasParam("exposure_time_selector");
+conversion_gain_given_ = nh.hasParam("conversion_gain");
+operating_mode_given_ = nh.hasParam("operating_mode");
+spatial_filter_on_given_ = nh.hasParam("spatial_filter");
+
+nh.getParam("amplitude_gain", amplitude_gain_);
+nh.getParam("exposure_time_selector", exposure_time_selector_);
+nh.getParam("conversion_gain", conversion_gain_);
+nh.getParam("operating_mode", operating_mode_);
+nh.getParam("spatial_filter", spatial_filter_on_);
+
   // ##########################
 
   nh.param<double>("exposure_search_timeout", exposure_search_timeout_, 5.);

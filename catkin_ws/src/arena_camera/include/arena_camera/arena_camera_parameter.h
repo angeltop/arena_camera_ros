@@ -286,6 +286,13 @@ public:
    */
   bool auto_flash_line_3_;
 
+  /* ADDITIONAL PARAMETERS */
+  int amplitude_gain_;
+  std::string exposure_time_selector_;
+  std::string conversion_gain_;
+  std::string operating_mode_;
+  bool amplitude_gain_given_, exposure_time_selector_given_, conversion_gain_given_, operating_mode_given_;
+  bool spatial_filter_on_, spatial_filter_on_given_;
 protected:
   /**
    * Validates the parameter set found on the ros parameter server.
@@ -328,6 +335,8 @@ protected:
    * 'bayer_gbrg8', 'bayer_rggb8' and 'yuv422'
    */
   std::string image_encoding_;
+  
+
 };
 
 }  // namespace arena_camera

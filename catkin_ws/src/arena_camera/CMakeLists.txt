@@ -55,6 +55,7 @@ set(CATKIN_COMPONENTS
      roslint
      roslaunch 
      sensor_msgs
+     pcl_ros
 )
 
 ## Find catkin macros and libraries
@@ -185,6 +186,34 @@ add_dependencies(
         ${catkin_EXPORTED_TARGETS} 
 )
 
+# add_executable(
+#     arena_camera_callback_node  # runs by rosrun
+#         src/arena_camera_callback_node.cpp
+#         src/arena_camera_parameter.cpp
+#         src/arena_camera.cpp
+#         src/encoding_conversions.cpp
+# )
+# 
+# # needed ".h"s
+# target_include_directories(
+#     arena_camera_callback_node
+#         PRIVATE ${catkin_INCLUDE_DIRS} 
+#         PRIVATE ${arena_sdk_INCLUDE_DIRS}
+#         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+# )
+# 
+# # needed ".so"s
+# target_link_libraries(
+#     arena_camera_callback_node
+#         ${catkin_LIBRARIES}
+#         ${arena_sdk_LIBRARIES}
+# )
+# 
+# add_dependencies(
+#     arena_camera_callback_node
+#         # because this uses one of the catkin componenets which is camera_control_msg
+#         ${catkin_EXPORTED_TARGETS} 
+# )
 # target_link_directories NOT NEEDED as arena_sdk_LIBRARIES is 
 # define with absolute paths
 
