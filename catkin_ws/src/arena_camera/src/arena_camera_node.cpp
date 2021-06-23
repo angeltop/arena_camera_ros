@@ -784,7 +784,7 @@ bool ArenaCameraNode::startGrabbing()
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = channels[2];
+			finalImage.image = channels[3];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
@@ -981,7 +981,7 @@ bool ArenaCameraNode::grabImage()
 
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
 	{
-		ros::Time start = ros::Time::now();
+// 		ros::Time start = ros::Time::now();
 		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
@@ -1007,8 +1007,8 @@ bool ArenaCameraNode::grabImage()
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
 
 			pc_pub_.publish(cloud);
-			ros::Duration dur = ros::Time::now()-start;
-			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
+// 			ros::Duration dur = ros::Time::now()-start;
+// 			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
@@ -1023,7 +1023,7 @@ bool ArenaCameraNode::grabImage()
 	}
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
 	{
-		ros::Time start = ros::Time::now();
+// 		ros::Time start = ros::Time::now();
 		pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
@@ -1051,12 +1051,12 @@ bool ArenaCameraNode::grabImage()
 			cloud->width = img_raw_msg_.width;
 			cloud->header.frame_id = img_raw_msg_.header.frame_id;
 			pc_pub_.publish(cloud);
-			ros::Duration dur = ros::Time::now()-start;
-			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
+// 			ros::Duration dur = ros::Time::now()-start;
+// 			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = channels[2];
+			finalImage.image = channels[3];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
