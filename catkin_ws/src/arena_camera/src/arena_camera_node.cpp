@@ -743,7 +743,7 @@ bool ArenaCameraNode::startGrabbing()
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = z;
+			finalImage.image = channels[2];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
@@ -784,7 +784,7 @@ bool ArenaCameraNode::startGrabbing()
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = z;
+			finalImage.image = channels[2];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
@@ -1012,7 +1012,7 @@ bool ArenaCameraNode::grabImage()
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = z;
+			finalImage.image = channels[2];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
@@ -1056,7 +1056,7 @@ bool ArenaCameraNode::grabImage()
 			cv_bridge::CvImage finalImage;
 			finalImage.header = img_raw_msg_.header;
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-			finalImage.image = z;
+			finalImage.image = channels[2];
 			finalImage.toImageMsg(final_img_msg_);
 		}
 		catch (cv_bridge::Exception& e)
