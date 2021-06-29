@@ -401,6 +401,9 @@ protected:
   ros::Publisher pc_pub_;
   double scale_x_, scale_y_, scale_z_;
   double offset_x_, offset_y_;
+  // depth publisher for abcy16
+  image_transport::CameraPublisher img_depth_pub_;
+  sensor_msgs::Image img_depth_msg_;
 };
 
 }  // namespace arena_camera
