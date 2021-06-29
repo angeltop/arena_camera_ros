@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+	<include file="$(find arena_camera)/launch/arena_camera_node.launch">
+	<arg name="config_file" value="$(find arena_camera)/config/set6.yaml"/>
+</include>
+</launch>
