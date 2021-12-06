@@ -78,6 +78,7 @@ ArenaCameraNode::ArenaCameraNode()
   , it_(new image_transport::ImageTransport(nh_))
   , img_raw_pub_(it_->advertiseCamera("image_raw", 1))
   , img_depth_pub_(it_->advertiseCamera("depth/image_raw", 1))
+  , img_depth_scaled_pub_(it_->advertiseCamera("depth/image_scaled", 1))
   , img_rect_pub_(nullptr)
   , grab_imgs_raw_as_(nh_, "grab_images_raw", boost::bind(&ArenaCameraNode::grabImagesRawActionExecuteCB, this, _1),
                       false)
@@ -794,6 +795,12 @@ bool ArenaCameraNode::startGrabbing()
 			depthImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
 			depthImage.image = channels[2];
 			depthImage.toImageMsg(img_depth_msg_);
+			cv_bridge::CvImage scaledDepthImage;
+			scaledDepthImage.header = img_raw_msg_.header;
+			scaledDepthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+			scaledDepthImage.image = z;
+			scaledDepthImage.toImageMsg(img_depth_scaled_msg_);
+			
 		}
 		catch (cv_bridge::Exception& e)
 		{
@@ -943,12 +950,14 @@ void ArenaCameraNode::spin()
 	  if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
 	  {
 		img_raw_pub_.publish(final_img_msg_, *cam_info);
+		img_depth_scaled_pub_.publish(img_depth_scaled_msg_, *cam_info);
 	  }
 	  else if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
-      {
-		  img_raw_pub_.publish(final_img_msg_, *cam_info);
-		  img_depth_pub_.publish(img_depth_msg_, *cam_info);
-      }
+	{
+	  img_raw_pub_.publish(final_img_msg_, *cam_info);
+	  img_depth_pub_.publish(img_depth_msg_, *cam_info);
+	  img_depth_scaled_pub_.publish(img_depth_scaled_msg_, *cam_info);
+	}
 	  else
 		img_raw_pub_.publish(img_raw_msg_, *cam_info);
       ROS_INFO_ONCE("Number subscribers received");
@@ -1076,6 +1085,11 @@ bool ArenaCameraNode::grabImage()
 			depthImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
 			depthImage.image = channels[2];
 			depthImage.toImageMsg(img_depth_msg_);
+			cv_bridge::CvImage scaledDepthImage;
+			scaledDepthImage.header = img_raw_msg_.header;
+			scaledDepthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+			scaledDepthImage.image = z;
+			scaledDepthImage.toImageMsg(img_depth_scaled_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{

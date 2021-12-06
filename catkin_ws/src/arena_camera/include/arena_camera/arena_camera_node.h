@@ -403,7 +403,8 @@ protected:
   double offset_x_, offset_y_;
   // depth publisher for abcy16
   image_transport::CameraPublisher img_depth_pub_;
-  sensor_msgs::Image img_depth_msg_;
+  image_transport::CameraPublisher img_depth_scaled_pub_;
+  sensor_msgs::Image img_depth_msg_, img_depth_scaled_msg_;
 };
 
 }  // namespace arena_camera
