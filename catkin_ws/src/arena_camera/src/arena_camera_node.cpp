@@ -90,12 +90,23 @@ ArenaCameraNode::ArenaCameraNode()
   , brightness_exp_lut_()
   , is_sleeping_(false)
   , is_helios2(false)
+  
 {
   diagnostics_updater_.setHardwareID("none");
   diagnostics_updater_.add("camera_availability", this, &ArenaCameraNode::create_diagnostics);
   diagnostics_updater_.add("intrinsic_calibration", this, &ArenaCameraNode::create_camera_info_diagnostics);
   diagnostics_trigger_ = nh_.createTimer(ros::Duration(2), &ArenaCameraNode::diagnostics_timer_callback_, this);
 
+  cloud_as_ = new GetCloudAS("get_cloud", false);
+  scaled_depth_as_ = new GetScaledDepthAS("get_scaled_depth", false);
+  
+  cloud_as_->registerGoalCallback(boost::bind(&ArenaCameraNode::cloudGoalCB, this));
+  cloud_as_->registerPreemptCallback(boost::bind(&ArenaCameraNode::cloudPreemptCB, this));
+  
+  scaled_depth_as_->registerGoalCallback(boost::bind(&ArenaCameraNode::scaledDepthGoalCB, this));
+  scaled_depth_as_->registerPreemptCallback(boost::bind(&ArenaCameraNode::scaledDepthPreemptCB, this));
+  cloudXYZ_ = CloudXYZ::Ptr(new CloudXYZ());
+  cloudXYZI_ = CloudXYZI::Ptr( new CloudXYZI());
   init();
 }
 
@@ -748,6 +759,11 @@ bool ArenaCameraNode::startGrabbing()
 			finalImage.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
 			finalImage.image = channels[2];
 			finalImage.toImageMsg(final_img_msg_);
+                        cv_bridge::CvImage scaledDepthImage;
+			scaledDepthImage.header = img_raw_msg_.header;
+			scaledDepthImage.encoding = sensor_msgs::image_encodings::TYPE_32FC1;
+			scaledDepthImage.image = z;
+			scaledDepthImage.toImageMsg(img_depth_scaled_msg_);
 		}
 		catch (cv_bridge::Exception& e)
 		{
@@ -837,7 +853,8 @@ bool ArenaCameraNode::startGrabbing()
   }
 
   grab_imgs_raw_as_.start();
-
+  cloud_as_->start();
+  scaled_depth_as_->start();
   ROS_INFO_STREAM("Startup settings: "
                   << "encoding = '" << currentROSEncoding() << "', "
                   << "binning = [" << currentBinningX() << ", " << currentBinningY() << "], "
@@ -1003,11 +1020,12 @@ bool ArenaCameraNode::grabImage()
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
 	{
 // 		ros::Time start = ros::Time::now();
-		pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
+		
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
 		try
 		{
+			cloudXYZ_->points.clear();
 			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC3);
 			im = cv_ptr->image;
 			cv::Mat channels[3];
@@ -1021,13 +1039,13 @@ bool ArenaCameraNode::grabImage()
 				for(int j=0; j<x.cols; j++)
 				{
 					pcl::PointXYZ point(x.at<double>(i,j), y.at<double>(i,j), z.at<double>(i,j));
-					cloud->points.push_back(point);	
+					cloudXYZ_->points.push_back(point);	
 				}
-			cloud->height = img_raw_msg_.height;
-			cloud->width = img_raw_msg_.width;
-			cloud->header.frame_id = img_raw_msg_.header.frame_id;
-			cloud->header.stamp = img_raw_msg_.header.stamp.toNSec() / 1000ull;
-			pc_pub_.publish(cloud);
+			cloudXYZ_->height = img_raw_msg_.height;
+			cloudXYZ_->width = img_raw_msg_.width;
+			cloudXYZ_->header.frame_id = img_raw_msg_.header.frame_id;
+			cloudXYZ_->header.stamp = img_raw_msg_.header.stamp.toNSec() / 1000ull;
+			pc_pub_.publish(cloudXYZ_);
 // 			ros::Duration dur = ros::Time::now()-start;
 // 			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
 			cv_bridge::CvImage finalImage;
@@ -1045,11 +1063,12 @@ bool ArenaCameraNode::grabImage()
 	if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
 	{
 // 		ros::Time start = ros::Time::now();
-		pcl::PointCloud<pcl::PointXYZI>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZI>());
+	
 		cv::Mat im;
 		cv_bridge::CvImagePtr cv_ptr;
 		try
 		{
+			cloudXYZI_->points.clear();
 			cv_ptr = cv_bridge::toCvCopy(img_raw_msg_, sensor_msgs::image_encodings::TYPE_16UC4);
 			im = cv_ptr->image;
 			cv::Mat channels[4];
@@ -1066,13 +1085,13 @@ bool ArenaCameraNode::grabImage()
 					point.x = x.at<float>(i,j);
 					point.y = y.at<float>(i,j);
 					point.z = z.at<float>(i,j);
-					cloud->points.push_back(point);	
+					cloudXYZI_->points.push_back(point);	
 				}
-			cloud->height = img_raw_msg_.height;
-			cloud->width = img_raw_msg_.width;
-			cloud->header.frame_id = img_raw_msg_.header.frame_id;
-			cloud->header.stamp = img_raw_msg_.header.stamp.toNSec() / 1000ull;
-			pc_pub_.publish(cloud);
+			cloudXYZI_->height = img_raw_msg_.height;
+			cloudXYZI_->width = img_raw_msg_.width;
+			cloudXYZI_->header.frame_id = img_raw_msg_.header.frame_id;
+			cloudXYZI_->header.stamp = img_raw_msg_.header.stamp.toNSec() / 1000ull;
+			pc_pub_.publish(cloudXYZI_);
 // 			ros::Duration dur = ros::Time::now()-start;
 // 			ROS_INFO_STREAM("Pointcloud computed in "<<dur.toNSec()<<" nano secs");
 			cv_bridge::CvImage finalImage;
@@ -1105,6 +1124,67 @@ bool ArenaCameraNode::grabImage()
     return false;
   }
 }
+
+void ArenaCameraNode::cloudGoalCB()
+{
+	if(!cloud_as_->isActive())
+	{
+		camera_control_msgs::GetCloudGoalConstPtr goal = cloud_as_->acceptNewGoal();
+		camera_control_msgs::GetCloudResult res;
+		if(grabImage())
+		{
+			if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abc16")
+			{
+// 				res.cloud = *cloudXYZ_;
+				sensor_msgs::PointCloud2 c;
+				pcl::toROSMsg  (*cloudXYZ_, c);
+				res.cloud = c;
+				res.success = true;
+				cloud_as_->setSucceeded(res);
+			}
+			else if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
+			{
+// 				res.cloud = *cloudXYZI_;
+				sensor_msgs::PointCloud2 c;
+				pcl::toROSMsg (*cloudXYZI_, c);
+				res.cloud = c;
+				res.success = true;
+				cloud_as_->setSucceeded(res);
+			}
+		}
+		else
+		{
+			res.success = false;
+			cloud_as_->setSucceeded(res);
+		}
+	}
+}
+
+void ArenaCameraNode::cloudPreemptCB(){cloud_as_->setPreempted();}
+
+void ArenaCameraNode::scaledDepthGoalCB()
+{
+	if(!scaled_depth_as_->isActive())
+	{
+		camera_control_msgs::GetScaledDepthGoalConstPtr goal = scaled_depth_as_->acceptNewGoal();
+		camera_control_msgs::GetScaledDepthResult res;
+		if(grabImage())
+		{
+			
+			res.scaled_depth = img_depth_scaled_msg_;
+			res.success = true;
+			scaled_depth_as_->setSucceeded(res);
+			
+		}
+		else
+		{
+			res.success = false;
+			scaled_depth_as_->setSucceeded(res);
+		}
+	}
+}
+
+void ArenaCameraNode::scaledDepthPreemptCB(){scaled_depth_as_->setPreempted();}
 
 void ArenaCameraNode::grabImagesRawActionExecuteCB(const camera_control_msgs::GrabImagesGoal::ConstPtr& goal)
 {

@@ -53,6 +53,8 @@
 #include <camera_control_msgs/SetROI.h>
 #include <camera_control_msgs/SetSleeping.h>
 #include <camera_control_msgs/GrabImagesAction.h>
+#include <camera_control_msgs/GetCloudAction.h>
+#include <camera_control_msgs/GetScaledDepthAction.h>
  
 #include <actionlib/server/simple_action_server.h>
 #include <camera_info_manager/camera_info_manager.h>
@@ -65,11 +67,15 @@
 #include <arena_camera/arena_camera.h>
 #include <arena_camera/arena_camera_parameter.h>
 #include "pcl_ros/point_cloud.h"
-
+#include <pcl_conversions/pcl_conversions.h>
+#include <sensor_msgs/PointCloud2.h>
 namespace arena_camera
 {
 typedef actionlib::SimpleActionServer<camera_control_msgs::GrabImagesAction> GrabImagesAS;
-
+typedef actionlib::SimpleActionServer<camera_control_msgs::GetCloudAction> GetCloudAS;
+typedef actionlib::SimpleActionServer<camera_control_msgs::GetScaledDepthAction> GetScaledDepthAS;
+typedef pcl::PointCloud<pcl::PointXYZI> CloudXYZI;
+typedef pcl::PointCloud<pcl::PointXYZ> CloudXYZ;
 /**
 * The ROS-node of the arena_camera interface
 */
@@ -377,6 +383,15 @@ protected:
   GrabImagesAS grab_imgs_raw_as_;
   GrabImagesAS* grab_imgs_rect_as_;
 
+  GetCloudAS *cloud_as_;
+  GetScaledDepthAS *scaled_depth_as_;
+  CloudXYZ::Ptr cloudXYZ_;
+  CloudXYZI::Ptr cloudXYZI_;
+  void cloudGoalCB();
+  void cloudPreemptCB();
+  void scaledDepthGoalCB();
+  void scaledDepthPreemptCB();
+  
   sensor_msgs::Image img_raw_msg_, final_img_msg_;
   cv_bridge::CvImage* cv_bridge_img_rect_;
 

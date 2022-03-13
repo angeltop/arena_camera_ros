@@ -56,6 +56,7 @@ set(CATKIN_COMPONENTS
      roslaunch 
      sensor_msgs
      pcl_ros
+     pcl_conversions
 )
 
 ## Find catkin macros and libraries
@@ -216,6 +217,35 @@ add_dependencies(
 # )
 # target_link_directories NOT NEEDED as arena_sdk_LIBRARIES is 
 # define with absolute paths
+
+
+add_executable(
+    test_pointcloud  # runs by rosrun
+        src/test_pointcloud_creation.cpp
+        src/encoding_conversions.cpp
+)
+
+# needed ".h"s
+target_include_directories(
+    test_pointcloud
+        PRIVATE ${catkin_INCLUDE_DIRS} 
+        PRIVATE ${arena_sdk_INCLUDE_DIRS}
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# needed ".so"s
+target_link_libraries(
+    test_pointcloud
+        ${catkin_LIBRARIES}
+        ${arena_sdk_LIBRARIES}
+)
+
+add_dependencies(
+    test_pointcloud
+        # because this uses one of the catkin componenets which is camera_control_msg
+        ${catkin_EXPORTED_TARGETS} 
+)
+
 
 
 #

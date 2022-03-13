@@ -1,0 +1,9 @@
+
+---
+
+sensor_msgs/Image scaled_depth
+
+bool success
+---
+
+
