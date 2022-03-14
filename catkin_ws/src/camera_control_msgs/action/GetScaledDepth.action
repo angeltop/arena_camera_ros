@@ -2,7 +2,7 @@
 ---
 
 sensor_msgs/Image scaled_depth
-
+sensor_msgs/CameraInfo cam_info
 bool success
 ---
 

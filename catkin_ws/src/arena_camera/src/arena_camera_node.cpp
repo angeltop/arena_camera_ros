@@ -1140,6 +1140,11 @@ void ArenaCameraNode::cloudGoalCB()
 				pcl::toROSMsg  (*cloudXYZ_, c);
 				res.cloud = c;
 				res.success = true;
+				if (camera_info_manager_)
+				{
+					sensor_msgs::CameraInfoPtr cam_info(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+					res.cam_info = *cam_info;
+				}
 				cloud_as_->setSucceeded(res);
 			}
 			else if(arena_camera_parameter_set_.imageEncoding()=="coord3d_abcy16")
@@ -1149,6 +1154,11 @@ void ArenaCameraNode::cloudGoalCB()
 				pcl::toROSMsg (*cloudXYZI_, c);
 				res.cloud = c;
 				res.success = true;
+				if (camera_info_manager_)
+				{
+					sensor_msgs::CameraInfoPtr cam_info(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+					res.cam_info = *cam_info;
+				}
 				cloud_as_->setSucceeded(res);
 			}
 		}
@@ -1173,6 +1183,11 @@ void ArenaCameraNode::scaledDepthGoalCB()
 			
 			res.scaled_depth = img_depth_scaled_msg_;
 			res.success = true;
+			if (camera_info_manager_)
+			{
+				sensor_msgs::CameraInfoPtr cam_info(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+				res.cam_info = *cam_info;
+			}
 			scaled_depth_as_->setSucceeded(res);
 			
 		}

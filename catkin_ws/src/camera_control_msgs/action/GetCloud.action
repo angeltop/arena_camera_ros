@@ -2,6 +2,7 @@
 ---
 
 sensor_msgs/PointCloud2 cloud
+sensor_msgs/CameraInfo cam_info
 
 bool success
 ---
